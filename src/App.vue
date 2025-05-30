@@ -1,7 +1,3 @@
-<script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
   <div>
     <a href="https://vite.dev" target="_blank">
@@ -11,8 +7,12 @@ import HelloWorld from './components/HelloWorld.vue'
       <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
     </a>
   </div>
-  <HelloWorld msg="Vite + Vue" />
+  <test-view msg="Vite + Vue" />
 </template>
+
+<script setup lang="ts">
+  import TestView from './views/TestView.vue'
+</script>
 
 <style scoped>
 .logo {
