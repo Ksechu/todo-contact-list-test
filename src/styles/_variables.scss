@@ -1,8 +1,8 @@
 :root {
-  --color-primary: #ff3366;
-  --color-secondary: #0051ff;
-  --font-base: 'Inter', sans-serif;
-  --border-radius: 8px;
-  --transition-fast: 0.2s ease;
-  --transition-medium: 0.4s ease;
+  --color-primary: #3b82f6; // голубая
+  --color-hover: #facc15;   // жёлтая
+  --color-error: #ef4444;   // красная
+  --color-add: #ec4899;     // розовая
+  --border-radius: 0.5rem;
+  --font-main: 'Inter', sans-serif;
 }
