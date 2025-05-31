@@ -4,6 +4,7 @@ import { useSidebar } from '../composables/useSidebar'
 import { GroupManager } from '../classes/GroupManager'
 import { useToast } from '../composables/useToast'
 import PhoneInput from './PhoneInput.vue'
+import ConfirmModal from './ConfirmModal.vue'
 import { Contact } from '../classes/Contact'
 
 const { isOpen, panelType, closeSidebar } = useSidebar()
@@ -14,45 +15,77 @@ const contactName = ref('')
 const contactPhone = ref('')
 const contactGroup = ref('')
 
-// Для редактирования (пока без реализации редактирования, можно добавить позже)
-const editingContact = ref<Contact | null>(null)
-const editingGroupName = ref<string | null>(null)
+const tempGroups = ref<string[]>([])
+const isSaving = ref(false)
+const hasUnsaved = ref(false)
+const errors = ref<string[]>([])
+const isModalOpen = ref(false)
+const groupToDelete = ref<string | null>(null)
 
 const title = computed(() => {
   if (panelType.value === 'group') return 'Группы контактов'
-  if (panelType.value === 'contact') return editingContact.value ? 'Редактировать контакт' : 'Добавить контакт'
+  if (panelType.value === 'contact') return 'Добавить контакт'
   return ''
 })
 
-// Реактивно отслеживаем группы из GroupManager
 const allGroups = computed(() => GroupManager.groups.map(g => g.name))
 
 watch(isOpen, (open) => {
-  if (open) {
-    // Сброс при открытии
-    groupName.value = ''
+  if (open && panelType.value === 'group') {
+    tempGroups.value = [...allGroups.value]
+    hasUnsaved.value = false
+    errors.value = []
+  }
+  if (open && panelType.value === 'contact') {
     contactName.value = ''
     contactPhone.value = ''
     contactGroup.value = ''
-    editingContact.value = null
   }
 })
 
-function handleAddGroup() {
-  const name = groupName.value.trim()
-  if (!name) {
-    showToast('Введите название группы', 'error')
+function addTempGroup() {
+  if (hasUnsaved.value) return
+  tempGroups.value.push('')
+  hasUnsaved.value = true
+}
+
+function removeTempGroup(index: number) {
+  if (hasUnsaved.value && index === tempGroups.value.length - 1 && tempGroups.value[index] === '') {
+    tempGroups.value.pop()
+    hasUnsaved.value = false
     return
   }
+  isModalOpen.value = true
+  groupToDelete.value = tempGroups.value[index]
+}
 
-  const added = GroupManager.addGroup(name)
+function confirmDeleteGroup() {
+  const name = groupToDelete.value
+  const success = GroupManager.removeGroup(name!)
+  if (success) {
+    showToast(`Группа "${name}" и её контакты удалены`, 'success')
+    tempGroups.value = tempGroups.value.filter(g => g !== name)
+  } else {
+    showToast('Ошибка при удалении группы', 'error')
+  }
+  groupToDelete.value = null
+  isModalOpen.value = false
+}
+
+function saveGroups() {
+  errors.value = []
+  const last = tempGroups.value[tempGroups.value.length - 1]
+  if (!last || last.trim() === '') {
+    errors.value[tempGroups.value.length - 1] = 'Введите название группы'
+    return
+  }
+  const added = GroupManager.addGroup(last.trim())
   if (!added) {
-    showToast('Группа с таким названием уже существует', 'error')
+    errors.value[tempGroups.value.length - 1] = 'Группа уже существует'
     return
   }
-
-  showToast(`Группа "${name}" добавлена`, 'success')
-  groupName.value = ''
+  showToast(`Группа "${last}" добавлена`, 'success')
+  hasUnsaved.value = false
   closeSidebar()
 }
 
@@ -75,72 +108,68 @@ function saveContact() {
   }
 
   showToast(`Контакт "${name}" добавлен в группу "${group}"`, 'success')
-  contactName.value = ''
-  contactPhone.value = ''
-  contactGroup.value = ''
   closeSidebar()
 }
-
-
 </script>
 
 <template>
   <transition name="fade">
-    <div v-if="isOpen" class="sidebar">
-      <div class="sidebar__header">
-        <h2 class="sidebar__title">{{ title }}</h2>
-        <button @click="closeSidebar" class="sidebar__close">✕</button>
-      </div>
+    <div v-if="isOpen">
+      <div class="overlay" @click="closeSidebar"></div>
+      <div class="sidebar">
+        <div class="sidebar__header">
+          <h2 class="sidebar__title">{{ title }}</h2>
+          <button @click="closeSidebar" class="sidebar__close">✕</button>
+        </div>
 
-      <div class="sidebar__content">
-        <form v-if="panelType === 'group'" class="form" @submit.prevent="handleAddGroup">
-          <div class="form__group">
-            <label class="form__label" for="group-name">Название группы</label>
-            <input
-              id="group-name"
-              v-model="groupName"
-              type="text"
-              class="form__input"
-              placeholder="Введите название"
-            />
-          </div>
-          <div class="form__actions">
-            <button type="submit" class="form__button form__button--primary">Сохранить</button>
-          </div>
-        </form>
-
-        <div v-else-if="panelType === 'contact'" class="form">
-          <div class="form__group">
-            <label class="form__label">Имя</label>
-            <input
-              type="text"
-              v-model="contactName"
-              class="form__input"
-              placeholder="Введите имя"
-            />
+        <div class="sidebar__content">
+          <div v-if="panelType === 'group'">
+            <ul class="group-list">
+              <li v-for="(group, index) in tempGroups" :key="index" class="group-item">
+                <input v-model="tempGroups[index]" :disabled="!hasUnsaved || index !== tempGroups.length - 1" class="group-input" :class="{ 'error': errors[index] }" />
+                <button class="btn btn--delete" @click="removeTempGroup(index)" :disabled="hasUnsaved && index !== tempGroups.length - 1">
+                  🗑
+                </button>
+                <p v-if="errors[index]" class="error-text">{{ errors[index] }}</p>
+              </li>
+            </ul>
+            <div class="group-actions">
+              <button class="form__button" @click="addTempGroup" :disabled="hasUnsaved">Добавить</button>
+              <button class="form__button form__button--primary" @click="saveGroups" :disabled="!hasUnsaved">Сохранить</button>
+            </div>
           </div>
 
-          <div class="form__group">
-            <label class="form__label">Телефон</label>
-            <PhoneInput v-model="contactPhone" />
-          </div>
-
-          <div class="form__group">
-            <label class="form__label">Группа</label>
-            <select v-model="contactGroup" class="form__input">
-              <option disabled value="">Выберите группу</option>
-              <option v-for="group in GroupManager.getAll()" :key="group.name" :value="group.name">
-                {{ group.name }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form__actions">
-            <button type="button" class="form__button form__button--primary" @click="saveContact">
-              Сохранить
-            </button>
+          <div v-else-if="panelType === 'contact'" class="form">
+            <div class="form__group">
+              <label class="form__label">Имя</label>
+              <input type="text" v-model="contactName" class="form__input" placeholder="Введите имя" />
+            </div>
+            <div class="form__group">
+              <label class="form__label">Телефон</label>
+              <PhoneInput v-model="contactPhone" />
+            </div>
+            <div class="form__group">
+              <label class="form__label">Группа</label>
+              <select v-model="contactGroup" class="form__input">
+                <option disabled value="">Выберите группу</option>
+                <option v-for="group in allGroups" :key="group" :value="group">{{ group }}</option>
+              </select>
+            </div>
+            <div class="form__actions">
+              <button type="button" class="form__button form__button--primary" @click="saveContact">Сохранить</button>
+            </div>
           </div>
         </div>
+
+        <ConfirmModal
+          v-if="isModalOpen"
+          @confirm="confirmDeleteGroup"
+          @cancel="isModalOpen = false"
+        >
+          <template #default>
+            <p>Вы уверены, что хотите удалить эту группу?<br />Это приведет к удалению всех контактов, находящихся в этой группе.</p>
+          </template>
+        </ConfirmModal>
       </div>
     </div>
   </transition>
@@ -155,37 +184,82 @@ function saveContact() {
   height: 100%;
   background: white;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  z-index: 50;
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease;
-  transform: translateX(0);
-
-  &--mobile {
-    left: auto;
-    right: 0;
-  }
-
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  &__title {
-    font-size: 1.2rem;
-    font-weight: bold;
-  }
-
-  &__close {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-  }
+  z-index: 100;
 }
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+}
+
+.sidebar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sidebar__title {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.sidebar__close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.group-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.group-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.group-input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.error-text {
+  color: #e11d48;
+  font-size: 0.8rem;
+  margin-top: -0.25rem;
+}
+
+.group-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.btn--delete {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #e11d48;
+}
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.3s ease;
 }

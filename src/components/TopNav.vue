@@ -13,7 +13,7 @@ const { openSidebar } = useSidebar()
         <span class="panel__title">Список контактов</span>
       </div>
       <div class="panel__right">
-        <button @click="openSidebar('contact')" class="btn btn--pink">Добавить контакт</button>
+        <button @click="openSidebar('contact')" class="btn btn--pink">Добавить контакт +</button>
         <button @click="openSidebar('group')" class="btn btn--primary">Группы</button>
       </div>
     </div>
@@ -27,6 +27,7 @@ const { openSidebar } = useSidebar()
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
 }
 
 .panel {
@@ -35,7 +36,7 @@ const { openSidebar } = useSidebar()
   align-items: center;
   gap: 1rem;
   width: 100%;
-  max-width: 1910px;
+  max-width: 1160px;
   padding: 1rem;
 
   &__left {

@@ -7,6 +7,7 @@ import { GROUPS_KEY } from '../constants/storageKeys'
 
 class GroupManagerClass {
   private state = reactive<{ groups: Group[] }>({ groups: [] })
+  Contact: any
 
   constructor() {
     const raw = StorageService.load<Group[]>(GROUPS_KEY)
@@ -35,9 +36,10 @@ class GroupManagerClass {
     return true
   }
 
-  removeGroup(name: string): void {
+  removeGroup(name: string): boolean {
     this.state.groups = this.state.groups.filter(g => g.name !== name)
     this.save()
+    return true
   }
 
   addContactToGroup(groupName: string, contact: Contact): boolean {
@@ -56,13 +58,15 @@ class GroupManagerClass {
     return true
   }
 
-  updateContactInGroup(groupName: string, updated: Contact): boolean {
+  updateContact(groupName: string, contactId: string, newName: string, newPhone: string): boolean {
     const group = this.state.groups.find(g => g.name === groupName)
     if (!group) return false
-    const success = group.updateContact(updated)
+
+    const success = group.updateContact({ id: contactId, name: newName, phone: newPhone })
     if (success) this.save()
     return success
   }
+
 
   save(): void {
     StorageService.save(GROUPS_KEY, this.state.groups)
