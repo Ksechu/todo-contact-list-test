@@ -135,7 +135,7 @@ function saveContact() {
         <div class="sidebar__content">
           <div v-if="panelType === 'group'">
             <ul class="group-list">
-              <li v-for="(group, index) in tempGroups" :key="index" class="group-item">
+              <li v-for="(_, index) in tempGroups" :key="index" class="group-item">
                 <input
                   v-model="tempGroups[index]"
                   :disabled="!hasUnsaved || index !== tempGroups.length - 1"

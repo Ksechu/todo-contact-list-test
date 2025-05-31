@@ -26,7 +26,7 @@ onMounted(() => {
     ref="phoneRef"
     type="text"
     class="form__input"
-    :value="modelValue"
+    :value="props.modelValue"
     placeholder="+7(___)___-__-__"
   />
 </template>
