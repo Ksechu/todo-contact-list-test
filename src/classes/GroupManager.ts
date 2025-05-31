@@ -1,4 +1,3 @@
-// classes/GroupManager.ts
 import { reactive, readonly } from 'vue'
 import { Group } from './Group'
 import { Contact } from './Contact'

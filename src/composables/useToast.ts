@@ -17,7 +17,7 @@ export function useToast() {
 
     setTimeout(() => {
       removeToast(id)
-    }, 4000)
+    }, 2000)
   }
 
   const removeToast = (id: number) => {

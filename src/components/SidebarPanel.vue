@@ -10,13 +10,15 @@ import { Contact } from '../classes/Contact'
 const { isOpen, panelType, closeSidebar } = useSidebar()
 const { showToast } = useToast()
 
-const groupName = ref('')
 const contactName = ref('')
 const contactPhone = ref('')
 const contactGroup = ref('')
 
+const contactNameError = ref('')
+const contactPhoneError = ref('')
+const contactGroupError = ref('')
+
 const tempGroups = ref<string[]>([])
-const isSaving = ref(false)
 const hasUnsaved = ref(false)
 const errors = ref<string[]>([])
 const isModalOpen = ref(false)
@@ -40,6 +42,9 @@ watch(isOpen, (open) => {
     contactName.value = ''
     contactPhone.value = ''
     contactGroup.value = ''
+    contactNameError.value = ''
+    contactPhoneError.value = ''
+    contactGroupError.value = ''
   }
 })
 
@@ -89,15 +94,20 @@ function saveGroups() {
   closeSidebar()
 }
 
+function validateContactFields() {
+  contactNameError.value = contactName.value.trim() === '' ? 'Поле является обязательным' : ''
+  contactPhoneError.value = contactPhone.value.trim() === '' ? 'Поле является обязательным' : ''
+  contactGroupError.value = contactGroup.value === '' ? 'Поле является обязательным' : ''
+
+  return !contactNameError.value && !contactPhoneError.value && !contactGroupError.value
+}
+
 function saveContact() {
+  if (!validateContactFields()) return
+
   const name = contactName.value.trim()
   const phone = contactPhone.value.trim()
   const group = contactGroup.value
-
-  if (!name || !phone || !group) {
-    showToast('Заполните все поля', 'error')
-    return
-  }
 
   const contact = new Contact(name, phone)
   const success = GroupManager.addContactToGroup(group, contact)
@@ -126,49 +136,80 @@ function saveContact() {
           <div v-if="panelType === 'group'">
             <ul class="group-list">
               <li v-for="(group, index) in tempGroups" :key="index" class="group-item">
-                <input v-model="tempGroups[index]" :disabled="!hasUnsaved || index !== tempGroups.length - 1" class="group-input" :class="{ 'error': errors[index] }" />
-                <button class="btn btn--delete" @click="removeTempGroup(index)" :disabled="hasUnsaved && index !== tempGroups.length - 1">
+                <input
+                  v-model="tempGroups[index]"
+                  :disabled="!hasUnsaved || index !== tempGroups.length - 1"
+                  class="group-input"
+                  placeholder="Введите название"
+                />
+                <button
+                  class="btn btn--delete"
+                  @click="removeTempGroup(index)"
+                  :disabled="hasUnsaved && index !== tempGroups.length - 1"
+                >
                   🗑
                 </button>
                 <p v-if="errors[index]" class="error-text">{{ errors[index] }}</p>
               </li>
             </ul>
-            <div class="group-actions">
-              <button class="form__button" @click="addTempGroup" :disabled="hasUnsaved">Добавить</button>
-              <button class="form__button form__button--primary" @click="saveGroups" :disabled="!hasUnsaved">Сохранить</button>
-            </div>
           </div>
 
           <div v-else-if="panelType === 'contact'" class="form">
             <div class="form__group">
               <label class="form__label">Имя</label>
-              <input type="text" v-model="contactName" class="form__input" placeholder="Введите имя" />
+              <input
+                type="text"
+                v-model="contactName"
+                class="group-input"
+                @blur="contactNameError = contactName.trim() ? '' : 'Поле является обязательным'"
+                :class="contactNameError ? 'outline' : ''"
+                placeholder="Введите имя"
+              />
+              <span v-if="contactNameError" class="error-text">{{ contactNameError }}</span>
             </div>
+
             <div class="form__group">
               <label class="form__label">Телефон</label>
-              <PhoneInput v-model="contactPhone" />
+              <PhoneInput
+                v-model="contactPhone"
+                class="group-input phone-wrapper"
+                :class="contactPhoneError ? 'outline' : ''"
+                @blur="contactPhoneError = contactPhone.trim() ? '' : 'Поле является обязательным'"
+              />
+              <span v-if="contactPhoneError" class="error-text">{{ contactPhoneError }}</span>
             </div>
+
             <div class="form__group">
               <label class="form__label">Группа</label>
-              <select v-model="contactGroup" class="form__input">
+              <select
+                v-model="contactGroup"
+                class="group-input"
+                :class="contactGroupError ? 'outline' : ''"
+                @blur="contactGroupError = contactGroup ? '' : 'Поле является обязательным'"
+              >
                 <option disabled value="">Выберите группу</option>
                 <option v-for="group in allGroups" :key="group" :value="group">{{ group }}</option>
               </select>
-            </div>
-            <div class="form__actions">
-              <button type="button" class="form__button form__button--primary" @click="saveContact">Сохранить</button>
+              <span v-if="contactGroupError" class="error-text">{{ contactGroupError }}</span>
             </div>
           </div>
+        </div>
+
+        <div class="sidebar__actions" v-if="panelType === 'group'">
+          <button class="btn btn--cancel" @click="addTempGroup" :disabled="hasUnsaved">Добавить</button>
+          <button class="btn btn--primary" @click="saveGroups" :disabled="!hasUnsaved">Сохранить</button>
+        </div>
+
+        <div class="sidebar__actions" v-else-if="panelType === 'contact'">
+          <button type="button" class="btn btn--primary" @click="saveContact">Сохранить</button>
         </div>
 
         <ConfirmModal
           v-if="isModalOpen"
           @confirm="confirmDeleteGroup"
           @cancel="isModalOpen = false"
+          type="group"
         >
-          <template #default>
-            <p>Вы уверены, что хотите удалить эту группу?<br />Это приведет к удалению всех контактов, находящихся в этой группе.</p>
-          </template>
         </ConfirmModal>
       </div>
     </div>
@@ -181,13 +222,19 @@ function saveContact() {
   top: 0;
   left: 0;
   width: 320px;
-  height: 100%;
+  height: calc(100% - 1.5rem);
   background: white;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   padding: 1rem;
   display: flex;
   flex-direction: column;
   z-index: 100;
+
+  @media (max-width: 768px) {
+    left: auto;
+    right: 0;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .overlay {
@@ -219,6 +266,20 @@ function saveContact() {
   cursor: pointer;
 }
 
+.sidebar__content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
 .group-list {
   list-style: none;
   padding: 0;
@@ -239,25 +300,31 @@ function saveContact() {
   border: 1px solid #ccc;
 }
 
-.error-text {
-  color: #e11d48;
-  font-size: 0.8rem;
-  margin-top: -0.25rem;
+select.group-input {
+  appearance: none;
+  background-color: white;
+  background-image: url("data:image/svg+xml,%3Csvg fill='gray' height='10' viewBox='0 0 10 6' width='10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 0.75rem auto;
+  padding-right: 1.5rem;
 }
 
-.group-actions {
+.form__group {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  justify-content: flex-end;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
 }
 
-.btn--delete {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  color: #e11d48;
+.form__label {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  color: #333;
+}
+
+.phone-wrapper {
+  display: flex;
+  align-items: center;
 }
 
 .fade-enter-active, .fade-leave-active {
@@ -265,5 +332,16 @@ function saveContact() {
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+
+.error-text {
+  color: #e11d48;
+  font-size: 0.8rem;
+  min-height: 1em;
+  margin-top: 0.25rem;
+}
+
+.outline {
+  outline: 2px solid var(--color-error);
 }
 </style>

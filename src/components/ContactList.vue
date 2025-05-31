@@ -7,7 +7,6 @@ import ConfirmModal from './ConfirmModal.vue'
 
 const { showToast } = useToast()
 
-const groups = computed(() => GroupManager.groups)
 const openGroups = ref<Set<string>>(new Set())
 
 function toggleGroup(name: string) {
@@ -53,7 +52,6 @@ function saveEdit() {
   cancelEdit()
 }
 
-// 🗑 Modal delete logic
 const isModalOpen = ref(false)
 const contactToDelete = ref<{ groupName: string, contactId: string } | null>(null)
 
@@ -74,15 +72,22 @@ function confirmDelete() {
   isModalOpen.value = false
   contactToDelete.value = null
 }
+
+const groupsWithContacts = computed(() =>
+  GroupManager.groups.filter(group => group.contacts.length > 0)
+)
 </script>
 
 <template>
   <div class="contact-list">
-    <ul class="group-list">
-      <li v-for="group in groups" :key="group.name" class="group">
+    <div v-if="groupsWithContacts.length === 0" class="empty-message">
+      Список контактов пуст
+    </div>
+    <ul v-else class="group-list">
+      <li v-for="group in groupsWithContacts" :key="group.name" class="group">
         <div class="group__header" @click="toggleGroup(group.name)">
-          <h3>{{ group.name }}</h3>
-          <span class="arrow" :class="{ open: isGroupOpen(group.name) }">&#9662;</span>
+          <h3 :style="isGroupOpen(group.name) ? 'color: var(--color-primary)' : ''">{{ group.name }}</h3>
+          <span class="arrow" :class="{ open: isGroupOpen(group.name) }">▾</span>
         </div>
         <transition name="slide-down">
           <ul v-if="isGroupOpen(group.name)" class="contact-list__items">
@@ -98,14 +103,14 @@ function confirmDelete() {
               <div class="contact-item__right">
                 <template v-if="editingContactId === contact.id">
                   <input v-model="editedPhone" />
-                  <button @click="saveEdit" class="icon-btn">✅</button>
-                  <button @click="cancelEdit" class="icon-btn danger">✖️</button>
+                  <button @click="saveEdit" class="btn btn--edit">☑</button>
+                  <button @click="cancelEdit" class="btn btn--delete">☒</button>
                 </template>
                 <template v-else>
                   <span class="contact-phone">{{ contact.phone }}</span>
                   <button
                     @click="startEditContact(group.name, contact)"
-                    class="icon-btn"
+                    class="btn btn--edit"
                     title="Редактировать"
                     :disabled="!!editingContactId"
                   >
@@ -113,7 +118,7 @@ function confirmDelete() {
                   </button>
                   <button
                     @click="requestDelete(group.name, contact.id)"
-                    class="icon-btn danger"
+                    class="btn btn--delete"
                     title="Удалить"
                     :disabled="!!editingContactId"
                   >
@@ -131,6 +136,7 @@ function confirmDelete() {
       v-if="isModalOpen"
       @confirm="confirmDelete"
       @cancel="isModalOpen = false"
+      type="contact"
     />
   </div>
 </template>
@@ -196,8 +202,34 @@ function confirmDelete() {
       border-bottom: none;
     }
 
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+
+      .contact-item__info {
+        width: 100%;
+      }
+
+      .contact-item__right {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 0.5rem;
+
+        .contact-phone {
+          flex: 1;
+        }
+
+        .btn {
+          flex-shrink: 0;
+        }
+      }
+    }
+
     &__info {
       flex: 1;
+
       .contact-name {
         font-weight: 500;
       }
@@ -206,6 +238,7 @@ function confirmDelete() {
         padding: 0.3rem 0.5rem;
         border: 1px solid #ccc;
         border-radius: 4px;
+        width: 100%;
       }
     }
 
@@ -218,6 +251,7 @@ function confirmDelete() {
         padding: 0.3rem 0.5rem;
         border: 1px solid #ccc;
         border-radius: 4px;
+        width: 100%;
       }
 
       .contact-phone {
@@ -246,20 +280,12 @@ function confirmDelete() {
   }
 }
 
-// Анимация выезда
-.slide-down-enter-active {
-  max-height: 1000px;
-  opacity: 1;
-  transition: max-height 0.4s ease, opacity 0.3s ease;
-}
-.slide-down-leave-active {
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.3s ease, opacity 0.2s ease;
-}
-.slide-down-enter-from,
-.slide-down-leave-to {
-  max-height: 0;
-  opacity: 0;
+.empty-message {
+  display: flex;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  align-items: center;
+  justify-content: center;
 }
 </style>

@@ -7,8 +7,9 @@
   font-style: normal;
 }
 
-html, body {
+* {
   font-family: var(--font-main);
+  font-size: 14px;
 }
 
 body {
@@ -24,6 +25,7 @@ body {
 
 select {
   padding: 0.5rem;
+  margin: 0.1rem;
   border: none;
   background-color: var(--color-gray);
   border-radius: var(--border-radius);
@@ -41,20 +43,18 @@ select {
 
 input {
   padding: 0.5rem;
+  margin: 0.1rem;
   border: none;
   background-color: var(--color-gray);
   border-radius: var(--border-radius);
   transition: all 0.2s ease;
+
   &:focus {
     outline: 2px solid var(--color-primary);
   }
 
   &:hover:not(:focus) {
     outline: 2px solid var(--color-hover);
-  }
-
-  &:root {
-    outline: 2px solid var(--color-error);
   }
 }
 
@@ -74,6 +74,8 @@ button {
     outline-offset: -0.1rem;
     background-color: white;
     color: var(--color-gray);
+    width: 34px;
+    height: 34px;
 
     &:hover {
       outline: 0;
@@ -89,6 +91,8 @@ button {
     outline-offset: -0.1rem;
     background-color: white;
     color: var(--color-gray);
+    width: 34px;
+    height: 34px;
 
     &:hover {
       outline: 0;
@@ -123,5 +127,19 @@ button {
     &:hover {
       background-color: var(--color-dark-primary);
     }
+  }
+
+  &--cancel {
+    background-color: white;
+    color: var(--color-primary);
+
+    &:hover {
+      background-color: var(--color-cancel);
+    }
+  }
+
+  .icon {
+    width: 24px;
+    height: 24px;
   }
 }

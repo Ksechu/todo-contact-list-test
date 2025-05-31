@@ -11,10 +11,11 @@ const { openSidebar } = useSidebar()
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 14a4 4 0 01-8 0m8 0V8a4 4 0 10-8 0v6m8 0H8" />
         </svg>
         <span class="panel__title">Список контактов</span>
+        <button @click="openSidebar('group')" class="btn btn--primary mobile-only">Группы</button>
       </div>
       <div class="panel__right">
         <button @click="openSidebar('contact')" class="btn btn--pink">Добавить контакт +</button>
-        <button @click="openSidebar('group')" class="btn btn--primary">Группы</button>
+        <button @click="openSidebar('group')" class="btn btn--primary desktop-only">Группы</button>
       </div>
     </div>
   </div>
@@ -39,6 +40,11 @@ const { openSidebar } = useSidebar()
   max-width: 1160px;
   padding: 1rem;
 
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   &__left {
     display: flex;
     align-items: center;
@@ -47,7 +53,7 @@ const { openSidebar } = useSidebar()
     .icon {
       width: 24px;
       height: 24px;
-      color: #3b82f6; // Синий
+      color: #3b82f6;
     }
 
     .panel__title {
@@ -55,13 +61,42 @@ const { openSidebar } = useSidebar()
       font-weight: 600;
       color: #1f2937;
     }
+
+    .btn--primary.mobile-only {
+      @media (min-width: 769px) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: space-between;
+    }
   }
 
   &__right {
     display: flex;
     gap: 0.5rem;
+
+    .btn--pink {
+      order: 1;
+    }
+
+    .btn--primary.desktop-only {
+      order: 2;
+      @media (max-width: 768px) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      width: 100%;
+      flex-direction: column;
+
+      .btn--pink {
+        width: 100%;
+      }
+    }
   }
 }
-
-/* Кнопки */
 </style>
