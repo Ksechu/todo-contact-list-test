@@ -1,41 +1,41 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useSidebar } from '../composables/useSidebar'
 import { GroupManager } from '../classes/GroupManager'
 import { useToast } from '../composables/useToast'
-import type { Contact } from '../classes/Contact'
+import PhoneInput from './PhoneInput.vue'
+import { Contact } from '../classes/Contact'
 
 const { isOpen, panelType, closeSidebar } = useSidebar()
 const { showToast } = useToast()
-
-const groupManager = new GroupManager()
 
 const groupName = ref('')
 const contactName = ref('')
 const contactPhone = ref('')
 const contactGroup = ref('')
 
-// Динамический заголовок панели
+// Для редактирования (пока без реализации редактирования, можно добавить позже)
+const editingContact = ref<Contact | null>(null)
+const editingGroupName = ref<string | null>(null)
+
 const title = computed(() => {
   if (panelType.value === 'group') return 'Группы контактов'
-  if (panelType.value === 'contact') return 'Добавить контакт'
+  if (panelType.value === 'contact') return editingContact.value ? 'Редактировать контакт' : 'Добавить контакт'
   return ''
 })
 
-const isMobile = computed(() => {
-  if (window) {
-    return window.innerWidth <= 768;
+// Реактивно отслеживаем группы из GroupManager
+const allGroups = computed(() => GroupManager.groups.map(g => g.name))
+
+watch(isOpen, (open) => {
+  if (open) {
+    // Сброс при открытии
+    groupName.value = ''
+    contactName.value = ''
+    contactPhone.value = ''
+    contactGroup.value = ''
+    editingContact.value = null
   }
-  return false;
-});
-
-const allGroups = computed(() => {
-  return groupManager.getAll;
-});
-
-// Сброс данных при открытии панели
-onMounted(() => {
-  groupName.value = ''
 })
 
 function handleAddGroup() {
@@ -45,7 +45,7 @@ function handleAddGroup() {
     return
   }
 
-  const added = groupManager.addGroup(name)
+  const added = GroupManager.addGroup(name)
   if (!added) {
     showToast('Группа с таким названием уже существует', 'error')
     return
@@ -56,36 +56,37 @@ function handleAddGroup() {
   closeSidebar()
 }
 
-// Сохранение нового контакта
 function saveContact() {
   const name = contactName.value.trim()
   const phone = contactPhone.value.trim()
   const group = contactGroup.value
 
-  if (!name || !phone || !group) return
+  if (!name || !phone || !group) {
+    showToast('Заполните все поля', 'error')
+    return
+  }
 
-  // const contact = { name, phone }
+  const contact = new Contact(name, phone)
+  const success = GroupManager.addContactToGroup(group, contact)
 
-  // const success = groupManager.addContactToGroup(group, contact);
-  // if (!success) {
-  //   showToast('Контакт с таким номером уже существует или группа не найдена', 'error')
-  //   return
-  // }
+  if (!success) {
+    showToast('Контакт уже существует или группа не найдена', 'error')
+    return
+  }
 
+  showToast(`Контакт "${name}" добавлен в группу "${group}"`, 'success')
   contactName.value = ''
   contactPhone.value = ''
   contactGroup.value = ''
   closeSidebar()
 }
+
+
 </script>
 
 <template>
   <transition name="fade">
-    <div
-      v-if="isOpen"
-      class="sidebar"
-      :class="{ 'sidebar--mobile': isMobile }"
-    >
+    <div v-if="isOpen" class="sidebar">
       <div class="sidebar__header">
         <h2 class="sidebar__title">{{ title }}</h2>
         <button @click="closeSidebar" class="sidebar__close">✕</button>
@@ -108,32 +109,37 @@ function saveContact() {
           </div>
         </form>
 
-        <div v-else-if="panelType === 'contact'" class="sidebar__form">
-          <!-- <label class="sidebar__label">Имя</label>
-          <input
-            type="text"
-            v-model="contactName"
-            class="sidebar__input"
-            placeholder="Введите имя"
-          />
+        <div v-else-if="panelType === 'contact'" class="form">
+          <div class="form__group">
+            <label class="form__label">Имя</label>
+            <input
+              type="text"
+              v-model="contactName"
+              class="form__input"
+              placeholder="Введите имя"
+            />
+          </div>
 
-          <label class="sidebar__label">Телефон</label>
-          <input
-            type="text"
-            v-model="contactPhone"
-            class="sidebar__input"
-            placeholder="+7 (___) ___-__-__"
-          />
+          <div class="form__group">
+            <label class="form__label">Телефон</label>
+            <PhoneInput v-model="contactPhone" />
+          </div>
 
-          <label class="sidebar__label">Группа</label>
-          <select v-model="contactGroup" class="sidebar__input">
-            <option disabled value="">Выберите группу</option>
-            <option v-for="group in groupManager.groups" :key="group.name" :value="group.name">
-              {{ group.name }}
-            </option>
-          </select>
+          <div class="form__group">
+            <label class="form__label">Группа</label>
+            <select v-model="contactGroup" class="form__input">
+              <option disabled value="">Выберите группу</option>
+              <option v-for="group in GroupManager.getAll()" :key="group.name" :value="group.name">
+                {{ group.name }}
+              </option>
+            </select>
+          </div>
 
-          <button class="sidebar__submit sidebar__submit--add" @click="saveContact">Добавить</button> -->
+          <div class="form__actions">
+            <button type="button" class="form__button form__button--primary" @click="saveContact">
+              Сохранить
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -141,8 +147,6 @@ function saveContact() {
 </template>
 
 <style scoped lang="scss">
-@import '../styles/variables';
-
 .sidebar {
   position: fixed;
   top: 0;
@@ -182,54 +186,10 @@ function saveContact() {
     cursor: pointer;
   }
 }
-
-.form {
-  &__group {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 1rem;
-  }
-
-  &__label {
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-
-  &__input {
-    padding: 0.5rem;
-    border: none;
-    background-color: #e5e7eb;
-    border-radius: var(--border-radius);
-    transition: outline 0.2s ease;
-
-    &:focus {
-      outline: 2px solid var(--color-primary);
-    }
-
-    &:hover:not(:focus) {
-      outline: 2px solid var(--color-hover);
-    }
-  }
-
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  &__button {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-
-    &--primary {
-      background-color: var(--color-primary);
-      color: white;
-
-      // &:hover {
-      //   background-color: darken(var(--color-primary), 10%);
-      // }
-    }
-  }
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 </style>

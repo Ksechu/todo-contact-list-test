@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import IMask from 'imask'
+
+const props = defineProps<{ modelValue: string }>()
+const emit = defineEmits(['update:modelValue'])
 
 const phoneRef = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   if (phoneRef.value) {
-    IMask(phoneRef.value, {
+    const mask = IMask(phoneRef.value, {
       mask: '+{7}(000)000-00-00',
+    })
+
+    mask.on('accept', () => {
+      emit('update:modelValue', mask.value)
     })
   }
 })
+
 </script>
 
 <template>
@@ -18,24 +26,10 @@ onMounted(() => {
     ref="phoneRef"
     type="text"
     class="form__input"
+    :value="modelValue"
     placeholder="+7(___)___-__-__"
   />
 </template>
 
 <style scoped lang="scss">
-.form__input {
-  padding: 0.5rem;
-  border: none;
-  background-color: #e5e7eb;
-  border-radius: var(--border-radius);
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: 2px solid var(--color-primary);
-  }
-
-  &:hover:not(:focus) {
-    outline: 2px solid var(--color-hover);
-  }
-}
 </style>
