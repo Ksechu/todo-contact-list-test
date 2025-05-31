@@ -238,7 +238,6 @@ const groupsWithContacts = computed(() =>
         padding: 0.3rem 0.5rem;
         border: 1px solid #ccc;
         border-radius: 4px;
-        width: 100%;
       }
     }
 

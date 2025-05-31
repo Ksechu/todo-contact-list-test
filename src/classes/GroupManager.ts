@@ -41,6 +41,18 @@ class GroupManagerClass {
     return true
   }
 
+  updateGroupName(oldName: string, newName: string): boolean {
+    const normalizedNewName = newName.trim().toLowerCase()
+    if (!newName.trim() || this.state.groups.some(g => g.name.trim().toLowerCase() === normalizedNewName && g.name !== oldName)) {
+      return false
+    }
+    const group = this.state.groups.find(g => g.name === oldName)
+    if (!group) return false
+    group.name = newName.trim()
+    this.save()
+    return true
+  }
+
   addContactToGroup(groupName: string, contact: Contact): boolean {
     const group = this.state.groups.find(g => g.name === groupName)
     if (!group) return false
@@ -60,17 +72,14 @@ class GroupManagerClass {
   updateContact(groupName: string, contactId: string, newName: string, newPhone: string): boolean {
     const group = this.state.groups.find(g => g.name === groupName)
     if (!group) return false
-
     const success = group.updateContact({ id: contactId, name: newName, phone: newPhone })
     if (success) this.save()
     return success
   }
-
 
   save(): void {
     StorageService.save(GROUPS_KEY, this.state.groups)
   }
 }
 
-// Создаем синглтон
 export const GroupManager = new GroupManagerClass()

@@ -23,6 +23,8 @@ const hasUnsaved = ref(false)
 const errors = ref<string[]>([])
 const isModalOpen = ref(false)
 const groupToDelete = ref<string | null>(null)
+const editingGroupIndex = ref<number | null>(null)
+const editedGroupName = ref('')
 
 const title = computed(() => {
   if (panelType.value === 'group') return 'Группы контактов'
@@ -37,6 +39,8 @@ watch(isOpen, (open) => {
     tempGroups.value = [...allGroups.value]
     hasUnsaved.value = false
     errors.value = []
+    editingGroupIndex.value = null
+    editedGroupName.value = ''
   }
   if (open && panelType.value === 'contact') {
     contactName.value = ''
@@ -49,12 +53,42 @@ watch(isOpen, (open) => {
 })
 
 function addTempGroup() {
-  if (hasUnsaved.value) return
+  if (hasUnsaved.value || editingGroupIndex.value !== null) return
   tempGroups.value.push('')
   hasUnsaved.value = true
 }
 
+function startEditGroup(index: number) {
+  if (hasUnsaved.value || editingGroupIndex.value !== null) return
+  editingGroupIndex.value = index
+  editedGroupName.value = tempGroups.value[index]
+}
+
+function cancelEditGroup() {
+  editingGroupIndex.value = null
+  editedGroupName.value = ''
+  errors.value = []
+}
+
+function saveEditGroup(index: number) {
+  const oldName = tempGroups.value[index]
+  const newName = editedGroupName.value.trim()
+  if (!newName) {
+    errors.value[index] = 'Введите название группы'
+    return
+  }
+  const success = GroupManager.updateGroupName(oldName, newName)
+  if (!success) {
+    errors.value[index] = 'Группа с таким именем уже существует'
+    return
+  }
+  tempGroups.value[index] = newName
+  showToast(`Группа "${oldName}" переименована в "${newName}"`, 'success')
+  cancelEditGroup()
+}
+
 function removeTempGroup(index: number) {
+  if (editingGroupIndex.value !== null) return
   if (hasUnsaved.value && index === tempGroups.value.length - 1 && tempGroups.value[index] === '') {
     tempGroups.value.pop()
     hasUnsaved.value = false
@@ -78,6 +112,7 @@ function confirmDeleteGroup() {
 }
 
 function saveGroups() {
+  if (editingGroupIndex.value !== null) return
   errors.value = []
   const last = tempGroups.value[tempGroups.value.length - 1]
   if (!last || last.trim() === '') {
@@ -136,19 +171,38 @@ function saveContact() {
           <div v-if="panelType === 'group'">
             <ul class="group-list">
               <li v-for="(_, index) in tempGroups" :key="index" class="group-item">
-                <input
-                  v-model="tempGroups[index]"
-                  :disabled="!hasUnsaved || index !== tempGroups.length - 1"
-                  class="group-input"
-                  placeholder="Введите название"
-                />
-                <button
-                  class="btn btn--delete"
-                  @click="removeTempGroup(index)"
-                  :disabled="hasUnsaved && index !== tempGroups.length - 1"
-                >
-                  🗑
-                </button>
+                <template v-if="editingGroupIndex === index">
+                  <input
+                    v-model="editedGroupName"
+                    class="group-input"
+                    placeholder="Введите новое название"
+                  />
+                  <button @click="saveEditGroup(index)" class="btn btn--edit">☑</button>
+                  <button @click="cancelEditGroup" class="btn btn--delete">☒</button>
+                </template>
+                <template v-else>
+                  <input
+                    v-model="tempGroups[index]"
+                    :disabled="!hasUnsaved || index !== tempGroups.length - 1"
+                    class="group-input"
+                    placeholder="Введите название"
+                  />
+                  <button
+                    v-if="index !== tempGroups.length - 1 || !hasUnsaved"
+                    class="btn btn--edit"
+                    @click="startEditGroup(index)"
+                    :disabled="hasUnsaved || editingGroupIndex !== null"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    class="btn btn--delete"
+                    @click="removeTempGroup(index)"
+                    :disabled="(hasUnsaved && index !== tempGroups.length - 1) || editingGroupIndex !== null"
+                  >
+                    🗑
+                  </button>
+                </template>
                 <p v-if="errors[index]" class="error-text">{{ errors[index] }}</p>
               </li>
             </ul>
@@ -196,8 +250,8 @@ function saveContact() {
         </div>
 
         <div class="sidebar__actions" v-if="panelType === 'group'">
-          <button class="btn btn--cancel" @click="addTempGroup" :disabled="hasUnsaved">Добавить</button>
-          <button class="btn btn--primary" @click="saveGroups" :disabled="!hasUnsaved">Сохранить</button>
+          <button class="btn btn--cancel" @click="addTempGroup" :disabled="hasUnsaved || editingGroupIndex !== null">Добавить</button>
+          <button class="btn btn--primary" @click="saveGroups" :disabled="!hasUnsaved || editingGroupIndex !== null">Сохранить</button>
         </div>
 
         <div class="sidebar__actions" v-else-if="panelType === 'contact'">
@@ -343,5 +397,31 @@ select.group-input {
 
 .outline {
   outline: 2px solid var(--color-error);
+}
+
+.btn--edit {
+  background: none;
+  border: none;
+  padding: 0.2rem;
+  cursor: pointer;
+  color: #555;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #000;
+  }
+}
+
+.btn--delete {
+  background: none;
+  border: none;
+  padding: 0.2rem;
+  cursor: pointer;
+  color: #555;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #e11d48;
+  }
 }
 </style>
