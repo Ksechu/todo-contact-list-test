@@ -6,10 +6,10 @@ Learn more about the recommended Project Setup and IDE Support in the [Vue Docs 
 
 # 📱 Контактная книга (Vue 3 + TypeScript)
 
-Интерактивное SPA-приложение для управления контактами и группами. Полностью отзывчивое, с локальным хранилищем и кастомной логикой.
+An interactive SPA app for managing contacts and groups. Fully responsive, with local storage and custom logic.
 live demo - https://ksechu.github.io/todo-contact-list-test/
 
-## Технологии
+## Technologies
 
 - [Vue 3](https://vuejs.org/)
 - [TypeScript](https://www.typescriptlang.org/)
@@ -18,28 +18,28 @@ live demo - https://ksechu.github.io/todo-contact-list-test/
 - [IMask.js](https://imask.js.org/)
 - [CSS Variables, BEM, animations]
 
-## 📦 Функциональность
+## 📦 Functionality
 
-- Создание, редактирование, удаление контактов
-- Управление группами контактов
-- Валидация дубликатов (по номеру и названию)
-- Маска ввода номера `+7 (___) ___-__-__`
-- Сохранение в `localStorage`
-- Тостеры при действиях
-- Попап при удалении группы
-- Адаптивный интерфейс (мобильный + десктоп)
+- Create, edit, and delete contacts
+- Manage contact groups
+- Duplicate validation (by number and name)
+- Number input mask: `+7 (___) ___-__-__`
+- Save to `localStorage`
+- Toasters on actions
+- Pop-up when deleting a group
+- Responsive interface (mobile + desktop)
 
-## Установка и запуск
+## Installation and launch
 
 ```bash
-# Клонируй репозиторий
+# Clone the repository
 git clone  https://ksechu.github.io/todo-contact-list-test.git
 cd todo-contact-list-test
 
-# Установка зависимостей
+# Installing dependencies
 npm install
 
-# Запуск разработки
+# Start of development
 npm run dev
 
 # Сборка
