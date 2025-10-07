@@ -4,7 +4,7 @@ This template should help get you started developing with Vue 3 and TypeScript i
 
 Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
 
-# 📱 Контактная книга (Vue 3 + TypeScript)
+# 📱 Contact book (Vue 3 + TypeScript)
 
 An interactive SPA app for managing contacts and groups. Fully responsive, with local storage and custom logic.
 live demo - https://ksechu.github.io/todo-contact-list-test/
